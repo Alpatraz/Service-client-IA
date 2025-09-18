@@ -219,7 +219,6 @@ export default function EmailReplyAssistantV2() {
   }
 
   function generateByTemplate() {
-    const b = currentBrand || { label: "", email: "", phone: "", site: "" };
     const greet = lang === "en" ? (tone === "tu" ? "Hi" : "Hello") : (tone === "tu" ? "Salut" : "Bonjour");
     const closing = lang === "en" ? "Best regards," : "Bien cordialement,";
 
