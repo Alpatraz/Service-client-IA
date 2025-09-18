@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optionnels — petites améliorations sans contrarier Tailwind */
+:root {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* On évite de donner un background ou un layout global au body :
+   ces styles seront gérés par les classes Tailwind dans l'app */
