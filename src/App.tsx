@@ -3,13 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 /**
  * Assistant de réponse Service Client – v2 (aperçu en direct)
  *
- * Nouveautés vs v1:
- * - 👥 Gestion dynamique des marques (email, téléphone, site)
- * - 📄 Zone CGV / règles internes (coller le texte)
- * - 📚 Bibliothèque de réponses types (coller des dizaines d'exemples)
- * - 🧩 Variables de contexte (horaire OK, date OK, mineurs, team building…)
- * - 💾 Sauvegarde auto dans localStorage (profil persistant sur ce poste)
- * - 🔁 IA optionnelle (OpenAI/OpenRouter) — sinon mode Template
+ * ✅ Prêt pour OpenRouter via proxy Netlify (clé côté serveur):
+ *   - Fonction serverless attendue: /.netlify/functions/openrouter-proxy
+ *   - Front n'envoie AUCUNE clé; tout passe par la fonction.
+ *   - Si tu choisis "OpenAI" (non recommandé), la clé est requise côté client.
  */
 
 // Types utilitaires
@@ -45,8 +42,8 @@ const LANGS = [
 
 const PROVIDERS = [
   { id: "template", label: "Template (hors IA)" },
-  { id: "openai", label: "OpenAI" },
-  { id: "openrouter", label: "OpenRouter" },
+  { id: "openrouter", label: "OpenRouter (via Netlify)" },
+  { id: "openai", label: "OpenAI (clé locale)" },
 ];
 
 export default function EmailReplyAssistantV2() {
@@ -78,8 +75,8 @@ export default function EmailReplyAssistantV2() {
 
   // IA engine (optionnel)
   const [provider, setProvider] = useState(PROVIDERS[0].id);
-  const [model, setModel] = useState("gpt-4.1-mini");
-  const [apiKey, setApiKey] = useState("");
+  const [model, setModel] = useState("anthropic/claude-3.5-sonnet:beta"); // slug OpenRouter par défaut
+  const [apiKey, setApiKey] = useState(""); // seulement pour OpenAI direct
   const [isLoading, setIsLoading] = useState(false);
 
   // Tests (dev)
@@ -100,7 +97,7 @@ export default function EmailReplyAssistantV2() {
         setLibraryText(cfg.libraryText ?? "");
         setCtx(cfg.ctx ?? ctx);
         setProvider(cfg.provider ?? PROVIDERS[0].id);
-        setModel(cfg.model ?? "gpt-4.1-mini");
+        setModel(cfg.model ?? "anthropic/claude-3.5-sonnet:beta");
         setApiKey(cfg.apiKey ?? "");
       } catch {}
     }
@@ -172,11 +169,34 @@ export default function EmailReplyAssistantV2() {
         setOutput(text);
         return;
       }
-      if (!apiKey) throw new Error("Aucune clé API fournie.");
+
       const sys = buildSystemPrompt();
       const usr = buildUserPrompt();
 
+      // ➜ OpenRouter via proxy Netlify (AUCUNE clé côté client)
+      if (provider === "openrouter") {
+        const res = await fetch("/.netlify/functions/openrouter-proxy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: model || "anthropic/claude-3.5-sonnet:beta",
+            temperature: 0.2,
+            messages: [
+              { role: "system", content: sys },
+              { role: "user", content: usr },
+            ],
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || JSON.stringify(data));
+        const content = data?.choices?.[0]?.message?.content || "";
+        setOutput(String(content).trim());
+        return;
+      }
+
+      // ➜ OpenAI direct (clé requise côté client) – non recommandé
       if (provider === "openai") {
+        if (!apiKey) throw new Error("Aucune clé API fournie (OpenAI)");
         const res = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
@@ -186,27 +206,13 @@ export default function EmailReplyAssistantV2() {
           ] })
         });
         const data = await res.json();
+        if (!res.ok) throw new Error(data?.error?.message || JSON.stringify(data));
         const content = data?.choices?.[0]?.message?.content || "";
-        setOutput(content.trim());
+        setOutput(String(content).trim());
         return;
       }
-
-      if (provider === "openrouter") {
-        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-          body: JSON.stringify({ model: model || "anthropic/claude-3.5-sonnet:beta", temperature: 0.2, messages: [
-            { role: "system", content: sys },
-            { role: "user", content: usr },
-          ] })
-        });
-        const data = await res.json();
-        const content = data?.choices?.[0]?.message?.content || "";
-        setOutput(content.trim());
-        return;
-      }
-    } catch (e) {
-      setOutput(`⚠️ Erreur de génération : ${e instanceof Error ? e.message : String(e)}`);
+    } catch (e: any) {
+      setOutput(`⚠️ Erreur de génération : ${e?.message || String(e)}`);
     } finally {
       setIsLoading(false);
     }
@@ -232,7 +238,11 @@ export default function EmailReplyAssistantV2() {
     if (ctx.dateOk) extras.push(lang === "en" ? "The proposed date works for us." : "La date proposée nous convient.");
     if (ctx.simultaneousStart) extras.push(lang === "en" ? "We can launch both rooms at the same time." : "Nous pouvons lancer les deux salles en même temps.");
 
-    const contacts = [b.email && `Email: ${b.email}`, b.phone && `Tél.: ${b.phone}`, b.site && b.site].filter(Boolean).join(" • ");
+    const contacts = [
+      currentBrand?.email && `Email: ${currentBrand.email}`,
+      currentBrand?.phone && `Tél.: ${currentBrand.phone}`,
+      currentBrand?.site && currentBrand.site,
+    ].filter(Boolean).join(" • ");
 
     const cgvClause = cgvText
       ? (lang === "en" ? "Key terms apply as per our conditions of sale (cancellations, changes, responsibilities)." : "Les modalités clés s'appliquent selon nos conditions générales de vente (annulations, modifications, responsabilités).")
@@ -241,7 +251,7 @@ export default function EmailReplyAssistantV2() {
     return [
       `${greet},`,
       "",
-      lang === "en" ? `Thanks for your message about a booking at ${b.label}.` : `Merci pour votre message au sujet d'une réservation chez ${b.label}.`,
+      lang === "en" ? `Thanks for your message about a booking at ${currentBrand?.label}.` : `Merci pour votre message au sujet d'une réservation chez ${currentBrand?.label}.`,
       lang === "en"
         ? `To prepare the right experience, could you please confirm:\n• Date & time\n• Number of participants and age group\n• Preferred scenario(s) and language\n• Any constraints (simultaneous start, specific window, etc.)`
         : `Afin de préparer la bonne expérience, pouvez‑vous confirmer :\n• Date & heure\n• Nombre de participantes/participants et tranche d'âge\n• Scénario(x) souhaité(s) et langue\n• Contraintes éventuelles (départ simultané, créneau précis, etc.)`,
@@ -256,26 +266,23 @@ export default function EmailReplyAssistantV2() {
       "",
       closing,
       "Service Client",
-      b.label,
+      currentBrand?.label || "",
       contacts,
     ].filter(Boolean).join("\n");
   }
 
   function copyOutput() { navigator.clipboard.writeText(output || ""); }
 
-  // DEV: tests rapides pour s'assurer que les joins sont bien échappés
+  // DEV: tests rapides
   function runQuickTests() {
     try {
       const j1 = ["a", "b"].join("\n");
       if (!j1.includes("\n")) throw new Error("join\\n ne contient pas de saut de ligne");
-
-      // Simule une génération template
-      const backup = { provider, input } as any;
+      const backup: any = { provider, input };
       setProvider("template");
       setInput("Test client message\nNombre: 10\nDate: 12 oct.");
       const txt = generateByTemplate();
       if (!txt || typeof txt !== "string" || txt.length < 20) throw new Error("Texte généré vide ou trop court");
-
       setProvider(backup.provider);
       setInput(backup.input);
       setTestLog("✅ Tests basiques OK");
@@ -371,7 +378,7 @@ export default function EmailReplyAssistantV2() {
             </div>
 
             <div className="bg-white rounded-2xl shadow p-4 space-y-3">
-              <h3 className="font-semibold">Moteur IA (optionnel)</h3>
+              <h3 className="font-semibold">Moteur IA</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm mb-1">Fournisseur</label>
@@ -381,14 +388,14 @@ export default function EmailReplyAssistantV2() {
                 </div>
                 <div>
                   <label className="block text-sm mb-1">Modèle</label>
-                  <input className="w-full border rounded-xl px-3 py-2" value={model} onChange={e=>setModel(e.target.value)} placeholder="gpt-4.1-mini / anthropic/claude‑3.5‑sonnet" />
+                  <input className="w-full border rounded-xl px-3 py-2" value={model} onChange={e=>setModel(e.target.value)} placeholder="anthropic/claude-3.5-sonnet:beta (OpenRouter) / gpt-4.1-mini (OpenAI)" />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm mb-1">Clé API</label>
-                  <input className="w-full border rounded-xl px-3 py-2" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="sk‑..." />
+                  <label className="block text-sm mb-1">Clé API (uniquement si OpenAI direct)</label>
+                  <input className="w-full border rounded-xl px-3 py-2" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="sk‑... (laisser vide si OpenRouter via Netlify)" />
                 </div>
               </div>
-              <p className="text-xs text-gray-500">Sans clé, utilise le mode Template.</p>
+              <p className="text-xs text-gray-500">OpenRouter via Netlify (recommandé) : définis <code>OPENROUTER_API_KEY</code> dans Netlify → Site settings → Environment variables. Aucune clé côté navigateur.</p>
             </div>
           </div>
 
