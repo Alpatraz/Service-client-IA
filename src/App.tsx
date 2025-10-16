@@ -227,7 +227,8 @@ ${emailExamplesText}
       const content = data?.choices?.[0]?.message?.content || "⚠️ Réponse vide";
       setOutput(content);
     } catch (e) {
-      setOutput(`⚠️ Erreur : ${e.message}`);
+      const msg = e instanceof Error ? e.message : String(e);
+      setOutput(`⚠️ Erreur : ${msg}`);
     } finally {
       setIsLoading(false);
     }
