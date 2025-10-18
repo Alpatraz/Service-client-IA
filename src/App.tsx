@@ -19,7 +19,7 @@ const ORG_PRESET = {
   ctx: {
     horairesOk: false,
     dateOk: false,
-    minorsRule: true,
+    minorsRule: false,
     teamBuilding: false,
     simultaneousStart: false,
   },
@@ -402,6 +402,7 @@ export default function App() {
       setOutput(content);
       setHasGenerated(true);
       setTestError(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
       setOutput(
         `⚠️ Erreur : ${String(e)}\n\n— Fallback local —\n${generateByTemplate()}`
