@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const ORG_VERSION = "2025-10-18-final";
+// const ORG_VERSION = "2025-10-18-final"; // inutilisé
 
 const ORG_PRESET = {
   brands: [
@@ -314,11 +313,11 @@ export default function App() {
     [brandId]
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const paymentLabel = useMemo(
-    () => PAYMENT_POLICIES.find((p) => p.id === payment)?.label ?? "",
-    [payment]
-  );
+ // const paymentLabel = useMemo(
+//   () => PAYMENT_POLICIES.find((p) => p.id === payment)?.label ?? "",
+//   [payment]
+// ); // inutilisé
+
 
   const generateByTemplate = () => {
     const greet =
