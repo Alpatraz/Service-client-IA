@@ -188,6 +188,10 @@ Salles :
  - Blackout (4-8)
  - Le Crépuscule (2-6)
 
+ Nouvelle expérience : 
+ - Spy Game (2-6)
+ Prix spécial de 20$ (plus taxes) par personne pour ce jeu.
+
 === FIND THE KEY ===
 Adresse : 1000 rue Atateken, Montréal
 Salles :
@@ -198,15 +202,16 @@ Salles :
 
 === MUSI’QUIZ MONTRÉAL ===
 Adresse : 422 rue Ontario Est, Montréal
-Jeux : Quiz musical / blind test / karaoké
+Jeux : Quiz musical / blind test
 Durée : 60 minutes
-Prix : 25 $ / personne
+Prix : 30$ (plus taxes) / personne (1-6 joueurs), 27$ (plus taxes) / personne (7-12 joueurs) / 25$ (plus taxes) / personne (3-18 joueurs)
 
 === MUSI’QUIZ QUÉBEC ===
-Adresse : 585 rue Saint-Joseph Est, Québec QC G1K 3B7
-Jeux : Quiz musical / blind test / karaoké
+Adresse : 430 rue du Parvis, Québec
+Jeux : Quiz musical / blind test
 Durée : 60 minutes
-Prix : 25 $ / personne`,
+Prix : 30$ (plus taxes) / personne (1-6 joueurs), 27$ (plus taxes) / personne (7-12 joueurs) / 25$ (plus taxes) / personne (3-18 joueurs)
+`,
   emailExamplesText: `Exemple 1 :
 Bonjour [Prénom],
 Merci pour votre message et votre intérêt pour Échappe-Toi !
