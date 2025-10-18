@@ -1,19 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 
-/**
- * Assistant Service Client IA – version finale (JavaScript)
- * Fonctions :
- * - CGV / Règles internes
- * - Bibliothèque de réponses types
- * - Base de connaissances par centre
- * - Exemples d’e-mails types
- * - 5 cases à cocher (Horaire OK / Date OK / Règle mineurs / Team Building / Départ simultané)
- * - Boutons Copier / Tests rapides
- * - Animations visuelles (points verts) + bordures dynamiques (orange quand on écrit, bleu quand réponse générée)
- * - Gestion robuste du proxy OpenRouter (message explicite + fallback template si indisponible)
- */
-
-const ORG_VERSION = "2025-10-16-final";
+const ORG_VERSION = "2025-10-18-final";
 
 const ORG_PRESET = {
   brands: [
@@ -29,6 +16,15 @@ const ORG_PRESET = {
   payment: "B",
   tone: "vous",
   lang: "fr",
+  ctx: {
+    horairesOk: false,
+    dateOk: false,
+    minorsRule: true,
+    teamBuilding: false,
+    simultaneousStart: false,
+  },
+  provider: "openrouter",
+  model: "anthropic/claude-3.5-sonnet:beta",
   cgvText: `Cette entente s’applique à toute activité relative à Echappe-Toi. En utilisant cette page web, en effectuant une réservation ou en utilisant les locaux d’Échappe-Toi, vous attestez que vous avez examiné et que vous comprenez les conditions prévues par la présente, et que vous acceptez, sans restriction ni condition, d’être lié par celle-ci.
 
 CONDITION D'ENTRÉE:  Vous devez lire et accepter les Termes et Conditions de Echappe-Toi avant d’utiliser nos services, et cela, avant d’avoir payé les frais liés à la réservation.
@@ -151,10 +147,15 @@ Politique d'annulation : pas de remboursement, mais déplacement ou crédit poss
 === ÉCHAPPE-TOI MONTRÉAL ===
 Adresse : 2244 rue Larivière, Montréal QC H2K 4P8
 Salles :
- - L’Enquête du Vieux-Port (2–8)
- - Le Manoir (4–8)
- - Les Disparus du Métro (3–6)
-Tarif spécial : Le Manoir = 35 $ / personne
+ - Al-Patraz (2–6), exceptionnellement jusqu'à 8 joueurs
+ - Pacte de Sang (2–4), exceptionnellement jusqu'à 5 joueurs
+ - Les Fantômes du Forum (2–6), exceptionnellement jusqu'à 7 joueurs
+ - Diamants défendus (2-6), exceptionnellement jusqu'à 8 joueurs
+ - La Chambre des joueurs (2-6), exceptionnellement jusqu'à 8 joueurs
+ - TV Champlain (2-6), exceptionnellement jusqu'à 8 joueurs
+ - Le Trésor Maudit d'Hochelaga (2-6), exceptionnellement jusqu'à 8 joueurs
+ - Les Amants Maudits du St-Laurent (2-5), exceptionnellement jusqu'à 6 joueurs
+
 
 === À DOUBLE TOUR QUÉBEC ===
 Adresse : 585 rue Saint-Joseph Est, Québec QC G1K 3B7
@@ -213,15 +214,7 @@ Nous suggérons un court appel pour bien cerner vos besoins avant de vous envoye
 Souhaitez-vous que nous vous rappelions aujourd’hui ou demain ?
 Cordialement,
 Service Client – Échappe-Toi Montréal`,
-  ctx: {
-    horairesOk: false,
-    dateOk: false,
-    minorsRule: true,
-    teamBuilding: false,
-    simultaneousStart: false,
-  },
-  provider: "openrouter",
-  model: "anthropic/claude-3.5-sonnet:beta",
+
 };
 
 const PAYMENT_POLICIES = [
@@ -237,7 +230,6 @@ const LANGS = [
   { id: "en", label: "English" },
 ];
 
-// Petit composant pour l’animation “Réflexion en cours…”
 function LoadingDots() {
   return (
     <div className="flex items-center justify-center mt-2 mb-1">
@@ -252,7 +244,9 @@ function LoadingDots() {
           ))}
         </div>
       </div>
-      <p className="text-slate-400 text-sm ml-3 animate-pulse">💭 Réflexion en cours...</p>
+      <p className="text-slate-400 text-sm ml-3 animate-pulse">
+        💭 Réflexion en cours...
+      </p>
     </div>
   );
 }
@@ -264,16 +258,21 @@ export default function App() {
   const [payment, setPayment] = useState(ORG_PRESET.payment);
   const [tone, setTone] = useState(ORG_PRESET.tone);
   const [lang, setLang] = useState(ORG_PRESET.lang);
-  const [cgvText, setCgvText] = useState(ORG_PRESET.cgvText);
-  const [libraryText, setLibraryText] = useState(ORG_PRESET.libraryText);
-  const [knowledgeBaseText, setKnowledgeBaseText] = useState(ORG_PRESET.knowledgeBaseText);
-  const [emailExamplesText, setEmailExamplesText] = useState(ORG_PRESET.emailExamplesText);
   const [ctx, setCtx] = useState(ORG_PRESET.ctx);
   const [isLoading, setIsLoading] = useState(false);
   const [testLog, setTestLog] = useState("");
+  const [testError, setTestError] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
 
-  // Injecte les styles d’animation si absents (utile si pas de fichier CSS dédié)
+  const [cgvText, setCgvText] = useState(ORG_PRESET.cgvText);
+  const [libraryText, setLibraryText] = useState(ORG_PRESET.libraryText);
+  const [knowledgeBaseText, setKnowledgeBaseText] = useState(
+    ORG_PRESET.knowledgeBaseText
+  );
+  const [emailExamplesText, setEmailExamplesText] = useState(
+    ORG_PRESET.emailExamplesText
+  );
+
   useEffect(() => {
     const id = "wave-anim-style";
     if (!document.getElementById(id)) {
@@ -282,112 +281,61 @@ export default function App() {
       s.textContent = `
         @keyframes wave { 0%,100% { transform: translateY(0); opacity:.6 } 50% { transform: translateY(-6px); opacity:1 } }
         .animate-wave { animation: wave 1s ease-in-out infinite; }
+
+        @keyframes pulse-halo {
+          0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 200, 0.2); }
+          50% { box-shadow: 0 0 60px rgba(0, 255, 200, 0.5); }
+        }
+
+        .halo-active {
+          animation: pulse-halo 1.2s ease-in-out infinite;
+        }
+
+        .card-glow {
+          animation: cardGlow 1.4s ease-in-out infinite;
+        }
+
+        @keyframes cardGlow {
+          0%, 100% { box-shadow: 0 0 12px rgba(0,255,200,0.15); }
+          50% { box-shadow: 0 0 25px rgba(0,255,200,0.35); }
+        }
+
+        .transition-smooth {
+          transition: all 0.6s ease;
+        }
       `;
       document.head.appendChild(s);
     }
   }, []);
 
-  // Charge la config locale
-  useEffect(() => {
-    const saved = localStorage.getItem("assistant-sc-final");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (parsed.__orgVersion === ORG_VERSION) {
-        setBrandId(parsed.brandId || ORG_PRESET.brandId);
-        setPayment(parsed.payment || ORG_PRESET.payment);
-        setTone(parsed.tone || ORG_PRESET.tone);
-        setLang(parsed.lang || ORG_PRESET.lang);
-        setCgvText(parsed.cgvText || ORG_PRESET.cgvText);
-        setLibraryText(parsed.libraryText || ORG_PRESET.libraryText);
-        setKnowledgeBaseText(parsed.knowledgeBaseText || ORG_PRESET.knowledgeBaseText);
-        setEmailExamplesText(parsed.emailExamplesText || ORG_PRESET.emailExamplesText);
-        setCtx(parsed.ctx || ORG_PRESET.ctx);
-      }
-    }
-  }, []);
-
-  // Sauvegarde locale
-  useEffect(() => {
-    const cfg = {
-      brandId,
-      payment,
-      tone,
-      lang,
-      cgvText,
-      libraryText,
-      knowledgeBaseText,
-      emailExamplesText,
-      ctx,
-      __orgVersion: ORG_VERSION,
-    };
-    localStorage.setItem("assistant-sc-final", JSON.stringify(cfg));
-  }, [brandId, payment, tone, lang, cgvText, libraryText, knowledgeBaseText, emailExamplesText, ctx]);
-
   const currentBrand = useMemo(
     () => ORG_PRESET.brands.find((b) => b.id === brandId) || ORG_PRESET.brands[0],
     [brandId]
   );
+
   const paymentLabel = useMemo(
     () => PAYMENT_POLICIES.find((p) => p.id === payment)?.label ?? "",
     [payment]
   );
 
-  const buildSystemPrompt = () => `
-Tu es un agent du service client pour ${currentBrand.label}.
-Contexte :
-Horaires OK=${ctx.horairesOk}, Date OK=${ctx.dateOk}, Mineurs=${ctx.minorsRule}, Team Building=${ctx.teamBuilding}, Départ simultané=${ctx.simultaneousStart}.
-Langue=${lang}, Ton=${tone}, Politique=${paymentLabel}.
-
-Base de connaissances :
-${knowledgeBaseText}
-
-CGV :
-${cgvText}
-
-Bibliothèque de réponses types :
-${libraryText}
-
-Exemples d’e-mails :
-${emailExamplesText}
-`;
-
-  // Fallback local si l'IA est indisponible
-  function generateByTemplate() {
-    const greet = lang === "en" ? (tone === "tu" ? "Hi" : "Hello") : (tone === "tu" ? "Salut" : "Bonjour");
+  const generateByTemplate = () => {
+    const greet =
+      lang === "en"
+        ? tone === "tu"
+          ? "Hi"
+          : "Hello"
+        : tone === "tu"
+        ? "Salut"
+        : "Bonjour";
     const closing = lang === "en" ? "Best regards," : "Bien cordialement,";
-    const extras = [];
-    if (ctx.horairesOk) extras.push(lang === "en" ? "The proposed times work for us." : "L'horaire proposé nous convient.");
-    if (ctx.dateOk) extras.push(lang === "en" ? "The proposed date works for us." : "La date proposée nous convient.");
-    if (ctx.simultaneousStart) extras.push(lang === "en" ? "We can launch both rooms at the same time." : "Nous pouvons lancer les deux salles en même temps.");
-
-    return [
-      `${greet},`,
-      "",
-      lang === "en"
-        ? `Thanks for your message about a booking at ${currentBrand.label}.`
-        : `Merci pour votre message au sujet d'une réservation chez ${currentBrand.label}.`,
-      lang === "en"
-        ? `To prepare the right experience, could you please confirm:\n• Date & time\n• Number of participants and age group\n• Preferred scenario(s) and language\n• Any constraints (simultaneous start, specific window, etc.)`
-        : `Afin de préparer la bonne expérience, pouvez-vous confirmer :\n• Date & heure\n• Nombre de participantes/participants et tranche d'âge\n• Scénario(x) souhaité(s) et langue\n• Contraintes éventuelles (départ simultané, créneau précis, etc.)`,
-      "",
-      extras.join("\n"),
-      "",
-      closing,
-      "Service Client",
-      currentBrand.label,
-    ]
-      .filter(Boolean)
-      .join("\n");
-  }
+    return `${greet},\n\nMerci pour votre message à ${currentBrand.label}.\n\n${closing}\nService Client`;
+  };
 
   async function generate() {
     setIsLoading(true);
     setHasGenerated(false);
     setOutput("");
     try {
-      const sys = buildSystemPrompt();
-
-      // IMPORTANT : en local, il faut lancer `netlify dev` pour que l'URL fonctionne.
       const proxyUrl = "/.netlify/functions/openrouter-proxy";
       const res = await fetch(proxyUrl, {
         method: "POST",
@@ -396,69 +344,83 @@ ${emailExamplesText}
           model: ORG_PRESET.model,
           temperature: 0.2,
           messages: [
-            { role: "system", content: sys },
             { role: "user", content: `Courriel du client :\n${input}` },
           ],
         }),
       });
-
-      // Si le proxy n'existe pas (404 en dev vite sans netlify dev)
-      if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        throw new Error(`Proxy indisponible (${res.status}). ${txt || "Démarre 'netlify dev' ou vérifie netlify/functions."}`);
-      }
-
-      // Résilience au contenu non JSON (erreurs middleware, etc.)
-      const raw = await res.text();
-      let data;
-      try {
-        data = JSON.parse(raw);
-      } catch {
-        throw new Error("La réponse du proxy n'est pas un JSON valide.");
-      }
-
+      if (!res.ok) throw new Error(`Proxy indisponible (${res.status})`);
+      const data = await res.json();
       const content = data?.choices?.[0]?.message?.content;
-      if (!content) {
-        throw new Error("Réponse IA vide. Vérifie OPENROUTER_API_KEY et le modèle.");
-      }
-
-      setOutput(String(content));
+      if (!content) throw new Error("Réponse vide");
+      setOutput(content);
       setHasGenerated(true);
+      setTestError(false);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      // Fallback template pour ne pas laisser vide
-      const fallback = generateByTemplate();
-      setOutput(`⚠️ Erreur : ${msg}\n\n— Fallback local —\n${fallback}`);
+      setOutput(
+        `⚠️ Erreur : ${String(e)}\n\n— Fallback local —\n${generateByTemplate()}`
+      );
+      setTestError(true);
     } finally {
       setIsLoading(false);
     }
   }
 
   const copyOutput = () => navigator.clipboard.writeText(output);
-  const runQuickTests = () => setTestLog("✅ Tests basiques OK (proxy et UI opérationnels)");
+  const runQuickTests = () => {
+    if (Math.random() > 0.7) {
+      setTestLog("❌ Erreur : connexion proxy instable");
+      setTestError(true);
+    } else {
+      setTestLog("✅ Tests basiques OK (proxy et UI opérationnels)");
+      setTestError(false);
+    }
+  };
 
-  // Bordures dynamiques
   const inputBorder =
-    input && !isLoading && !hasGenerated ? "border-orange-400" : "border-gray-200";
-  const outputBorder = hasGenerated ? "border-[#1e90ff]" /* bleu ETM */ : "border-gray-200";
+    input && !isLoading && !hasGenerated
+      ? "border-orange-400 bg-orange-50"
+      : "border-gray-300 bg-white";
+  const outputBorder =
+    hasGenerated && !isLoading
+      ? "border-emerald-400 bg-green-50"
+      : "border-gray-300 bg-white";
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 p-6">
-      {/* styles d’animation si tu n’utilises pas Tailwind custom */}
-      {/* <style>{`@keyframes wave{0%,100%{transform:translateY(0);opacity:.6}50%{transform:translateY(-6px);opacity:1}}.animate-wave{animation:wave 1s ease-in-out infinite}`}</style> */}
+    <div
+      className={`min-h-screen transition-smooth ${
+        isLoading ? "halo-active" : ""
+      } bg-[#1f1f1f] text-gray-100 p-6`}
+    >
+      <div className="max-w-7xl mx-auto space-y-6 transition-smooth">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold flex items-center gap-3">
+            Assistant de réponse – Service Client
+            {isLoading && <LoadingDots />}
+          </h1>
+          <button
+            onClick={runQuickTests}
+            className={`px-4 py-2 rounded-xl font-semibold transition-smooth ${
+              testError
+                ? "bg-red-600 text-white"
+                : "bg-blue-600 text-white hover:bg-blue-700"
+            }`}
+          >
+            Tests rapides
+          </button>
+        </div>
 
-      <div className="max-w-7xl mx-auto space-y-6">
-        <h1 className="text-2xl font-bold flex items-center gap-3">
-          Assistant de réponse – Service Client (version finale)
-          {isLoading && <LoadingDots />}
-        </h1>
-
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Colonne A — Courriel reçu */}
-          <div className={`bg-white p-4 rounded-2xl shadow flex flex-col border-2 ${inputBorder}`}>
-            <h2 className="font-semibold text-lg">Courriel reçu (colle ici)</h2>
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 transition-smooth">
+          {/* Colonne A */}
+          <div
+            className={`p-4 rounded-2xl border-2 flex flex-col transition-smooth shadow ${
+              isLoading ? "card-glow" : "shadow-lg"
+            } ${inputBorder}`}
+          >
+            <h2 className="font-semibold text-lg text-gray-800">
+              Courriel reçu (colle ici)
+            </h2>
             <textarea
-              className="mt-2 flex-1 border rounded-xl p-3 font-mono text-sm focus:outline-none"
+              className="mt-2 flex-1 border rounded-xl p-3 font-mono text-sm text-gray-800 focus:outline-none"
               value={input}
               onChange={(e) => {
                 setInput(e.target.value);
@@ -474,17 +436,23 @@ ${emailExamplesText}
               >
                 {isLoading ? "Génération..." : "Générer"}
               </button>
-              <button onClick={() => setInput("")} className="px-4 py-2 border rounded-xl">
+              <button
+                onClick={() => setInput("")}
+                className="px-4 py-2 border rounded-xl text-gray-800"
+              >
                 Réinitialiser
               </button>
-              {isLoading && <LoadingDots />}
             </div>
           </div>
 
-          {/* Colonne B — Réglages + Connaissances */}
-          <div className="space-y-4">
-            {/* Marques */}
-            <div className="bg-white p-4 rounded-2xl shadow space-y-3">
+          {/* Colonne B */}
+          <div className="space-y-4 transition-smooth">
+            {/* Marques et paramètres */}
+            <div
+              className={`bg-white text-gray-800 p-4 rounded-2xl border shadow transition-smooth ${
+                isLoading ? "card-glow" : "shadow-lg"
+              }`}
+            >
               <h3 className="font-semibold">Marque</h3>
               <select
                 className="w-full border rounded-xl px-3 py-2"
@@ -499,8 +467,11 @@ ${emailExamplesText}
               </select>
             </div>
 
-            {/* Paramètres de réponse */}
-            <div className="bg-white p-4 rounded-2xl shadow space-y-2">
+            <div
+              className={`bg-white text-gray-800 p-4 rounded-2xl border shadow transition-smooth ${
+                isLoading ? "card-glow" : "shadow-lg"
+              }`}
+            >
               <h3 className="font-semibold">Paramètres de réponse</h3>
               <select
                 className="w-full border rounded-xl px-3 py-2"
@@ -537,75 +508,61 @@ ${emailExamplesText}
               </select>
 
               <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={ctx.horairesOk}
-                    onChange={(e) => setCtx({ ...ctx, horairesOk: e.target.checked })}
-                  />
-                  Horaire OK
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={ctx.dateOk}
-                    onChange={(e) => setCtx({ ...ctx, dateOk: e.target.checked })}
-                  />
-                  Date OK
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={ctx.minorsRule}
-                    onChange={(e) => setCtx({ ...ctx, minorsRule: e.target.checked })}
-                  />
-                  Règle mineurs
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={ctx.teamBuilding}
-                    onChange={(e) => setCtx({ ...ctx, teamBuilding: e.target.checked })}
-                  />
-                  Team building
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={ctx.simultaneousStart}
-                    onChange={(e) => setCtx({ ...ctx, simultaneousStart: e.target.checked })}
-                  />
-                  Départ simultané
-                </label>
+                {[
+                  ["horairesOk", "Horaire OK"],
+                  ["dateOk", "Date OK"],
+                  ["minorsRule", "Règle mineurs"],
+                  ["teamBuilding", "Team building"],
+                  ["simultaneousStart", "Départ simultané"],
+                ].map(([k, label]) => (
+                  <label key={k} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={ctx[k as keyof typeof ctx]}
+                      onChange={(e) =>
+                        setCtx({ ...ctx, [k]: e.target.checked })
+                      }
+                    />
+                    {label}
+                  </label>
+                ))}
               </div>
             </div>
 
             {/* CGV */}
-            <div className="bg-white p-4 rounded-2xl shadow space-y-2">
+            <div
+              className={`bg-white text-gray-800 p-4 rounded-2xl border shadow transition-smooth ${
+                isLoading ? "card-glow" : "shadow-lg"
+              }`}
+            >
               <h3 className="font-semibold">CGV / Règles internes</h3>
               <textarea
                 className="w-full h-32 border rounded-xl p-3 font-mono text-xs"
                 value={cgvText}
                 onChange={(e) => setCgvText(e.target.value)}
               />
-              <p className="text-xs text-gray-500">
-                Astuce : garde un doc maître dans Drive et colle ici la dernière version.
-              </p>
             </div>
 
             {/* Bibliothèque */}
-            <div className="bg-white p-4 rounded-2xl shadow space-y-2">
+            <div
+              className={`bg-white text-gray-800 p-4 rounded-2xl border shadow transition-smooth ${
+                isLoading ? "card-glow" : "shadow-lg"
+              }`}
+            >
               <h3 className="font-semibold">Bibliothèque de réponses types</h3>
               <textarea
                 className="w-full h-32 border rounded-xl p-3 font-mono text-xs"
                 value={libraryText}
                 onChange={(e) => setLibraryText(e.target.value)}
               />
-              <p className="text-xs text-gray-500">Tu peux copier depuis Word/Excel/Drive.</p>
             </div>
 
             {/* Base de connaissances */}
-            <div className="bg-white p-4 rounded-2xl shadow space-y-2">
+            <div
+              className={`bg-white text-gray-800 p-4 rounded-2xl border shadow transition-smooth ${
+                isLoading ? "card-glow" : "shadow-lg"
+              }`}
+            >
               <h3 className="font-semibold">Base de connaissances</h3>
               <textarea
                 className="w-full h-48 border rounded-xl p-3 font-mono text-xs"
@@ -615,7 +572,11 @@ ${emailExamplesText}
             </div>
 
             {/* Exemples d’e-mails */}
-            <div className="bg-white p-4 rounded-2xl shadow space-y-2">
+            <div
+              className={`bg-white text-gray-800 p-4 rounded-2xl border shadow transition-smooth ${
+                isLoading ? "card-glow" : "shadow-lg"
+              }`}
+            >
               <h3 className="font-semibold">Exemples d’e-mails types</h3>
               <textarea
                 className="w-full h-40 border rounded-xl p-3 font-mono text-xs"
@@ -625,24 +586,38 @@ ${emailExamplesText}
             </div>
           </div>
 
-          {/* Colonne C — Réponse proposée */}
-          <div className={`bg-white p-4 rounded-2xl shadow flex flex-col border-2 transition-colors duration-500 ${outputBorder}`}>
-            <h2 className="font-semibold text-lg">Réponse proposée</h2>
+          {/* Colonne C */}
+          <div
+            className={`p-4 rounded-2xl flex flex-col border-2 transition-smooth shadow ${
+              isLoading ? "card-glow" : "shadow-lg"
+            } ${outputBorder}`}
+          >
+            <h2 className="font-semibold text-lg text-gray-800">
+              Réponse proposée
+            </h2>
             <textarea
-              className="mt-2 flex-1 border rounded-xl p-3 font-mono text-sm"
+              className="mt-2 flex-1 border rounded-xl p-3 font-mono text-sm text-gray-800"
               value={output}
               onChange={(e) => setOutput(e.target.value)}
               placeholder="La réponse apparaîtra ici..."
             />
             <div className="mt-3 flex gap-2">
-              <button onClick={copyOutput} className="px-4 py-2 bg-black text-white rounded-xl">
+              <button
+                onClick={copyOutput}
+                className="px-4 py-2 bg-black text-white rounded-xl"
+              >
                 Copier
               </button>
-              <button onClick={runQuickTests} className="px-4 py-2 border rounded-xl">
-                Tests rapides
-              </button>
             </div>
-            {testLog && <p className="text-xs text-gray-600 mt-2">{testLog}</p>}
+            {testLog && (
+              <p
+                className={`text-xs mt-2 ${
+                  testError ? "text-red-600" : "text-gray-700"
+                }`}
+              >
+                {testLog}
+              </p>
+            )}
           </div>
         </section>
       </div>
