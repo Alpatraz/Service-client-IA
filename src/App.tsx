@@ -139,7 +139,8 @@ Venez vous défier sur des quiz musicaux créés sur-mesure adaptés à toutes l
   knowledgeBaseText: `=== INFORMATIONS GÉNÉRALES ===
 Durée : 60 minutes
 Joueurs : 2 à 8
-Prix standard : 32,50 $ adulte / 28,50 $ étudiant / 25 $ école
+Prix standard : 33$ (plus taxes) adulte / 27$ (plus taxes) étudiant / 22$ (taxes incluses) école, association, camp de jour
+Gratuit pour les enfants <8 ans
 Langues : Français / Anglais
 Règle mineurs : <15 ans → 1 adulte accompagnateur par salle
 Politique d'annulation : pas de remboursement, mais déplacement ou crédit possible
@@ -156,36 +157,47 @@ Salles :
  - Le Trésor Maudit d'Hochelaga (2-6), exceptionnellement jusqu'à 8 joueurs
  - Les Amants Maudits du St-Laurent (2-5), exceptionnellement jusqu'à 6 joueurs
 
-
 === À DOUBLE TOUR QUÉBEC ===
-Adresse : 585 rue Saint-Joseph Est, Québec QC G1K 3B7
+Adresse : 430 rue du Parvis, Québec
 Salles :
- - La Conspiration du Château (4–8)
- - Les Fantômes du Port (3–6)
- - Le Cabinet Secret (2–5)
-Tarif spécial : Le Cabinet Secret = 29 $ / personne
+ - Au pays des Merveilles (4–8)
+ - Le Secret des dunes (3–6)
+ - Va chez L'Yâbe (2–5)
+ - Zone Morte
+ - M. Newton
+ 
+ Salles jeu VR :
+ - Alice - Jeu VR ARVI (2-4)
+ - Cyberpunk - Jeu VR ARVI (2-4)
+ - Escape the World - Jeu VR ARVI (2-4)
+ - Jungle Quest - Jeu VR ARVI (2-4)
+ - Sanctum - Jeu VR ARVI (2-4)
+
+ Prix spéciaux de 30$ (plus taxes) par personnes pour les salles de réalités virtuelles.
 
 === VORTEX QUARTIER LATIN ===
-Adresse : 3841 boulevard Saint-Laurent, Montréal QC H2W 1X9
+Adresse : 422 rue Ontario Est, Montréal
 Salles :
- - Le Cube (2–6)
- - Le Laboratoire (4–8)
-Tarif spécial : Le Cube = 27 $ / personne
+ - La Valise sans fond (2–6)
+ - Tempus Evadere (2–6)
 
 === VORTEX PLATEAU ===
-Adresse : 207 rue Rachel Est, Montréal QC H2W 1E4
+Adresse : 3841 boulevard Saint-Laurent, Montréal QC H2W 1X9
 Salles :
- - Cyberpunk 2049 (3–8)
- - Le Casse du Siècle (2–6)
+ - La Prophétie du dragon (2–6)
+ - Blackout (4-8)
+ - Le Crépuscule (2-6)
 
 === FIND THE KEY ===
-Adresse : 1250 rue Sainte-Catherine Est, Montréal QC
+Adresse : 1000 rue Atateken, Montréal
 Salles :
- - Prison Break (2–8)
- - Zombie Apocalypse (3–6)
+ - Insomnium (2–6)
+ - The Unknown - L'expérience sociale (2–4)
+ - La Cabine dans les bois (2-6)
+ - Navire Pirate hanté (3-8)
 
 === MUSI’QUIZ MONTRÉAL ===
-Adresse : 2244 rue Larivière, Montréal QC H2K 4P8
+Adresse : 422 rue Ontario Est, Montréal
 Jeux : Quiz musical / blind test / karaoké
 Durée : 60 minutes
 Prix : 25 $ / personne
