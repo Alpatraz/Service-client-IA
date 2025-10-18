@@ -545,7 +545,7 @@ export default function App() {
                 ))}
               </select>
               <select
-                className="w-full border rounded-xl px-3 py-2"
+                className="w-full border rounded-xl px-3 py-2 mt-2"
                 value={tone}
                 onChange={(e) => setTone(e.target.value)}
               >
@@ -556,7 +556,7 @@ export default function App() {
                 ))}
               </select>
               <select
-                className="w-full border rounded-xl px-3 py-2"
+                className="w-full border rounded-xl px-3 py-2 mt-2"
                 value={lang}
                 onChange={(e) => setLang(e.target.value)}
               >
