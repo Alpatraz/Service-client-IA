@@ -318,7 +318,6 @@ export default function App() {
 //   [payment]
 // ); // inutilisé
 
-
   const generateByTemplate = () => {
     const greet =
       lang === "en"
@@ -339,16 +338,42 @@ export default function App() {
     try {
       const proxyUrl = "/.netlify/functions/openrouter-proxy";
       const res = await fetch(proxyUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: ORG_PRESET.model,
-          temperature: 0.2,
-          messages: [
-            { role: "user", content: `Courriel du client :\n${input}` },
-          ],
-        }),
-      });
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    model: ORG_PRESET.model,
+    temperature: 0.3,
+    messages: [
+      {
+        role: "system",
+        content: `
+Tu es un assistant IA spécialisé en service client pour des centres de jeux d’évasion et d’activités immersives :
+Échappe-Toi Montréal, À Double Tour Québec, Vortex Plateau, Vortex Quartier Latin, Find The Key et Musi’Quiz.
+Ton rôle est de rédiger des réponses de courriels professionnelles, chaleureuses et “vendeuses”.
+
+Règles :
+- Toujours utiliser le ton du paramètre choisi (“vous” ou “tu”).
+- Rédige comme si tu étais un employé du centre sélectionné (ex: ${currentBrand.label}).
+- Mentionne les salles et capacités depuis la base de connaissances.
+- Utilise les CGV et la bibliothèque de réponses types comme références.
+- Adapte la réponse selon les cases cochées : Team building, Date OK, Horaire OK, etc.
+- Termine toujours par une invitation claire à confirmer la réservation ou à appeler.
+
+Voici les ressources :
+[CGV]\n${cgvText}
+[BIBLIOTHÈQUE]\n${libraryText}
+[BASE DE CONNAISSANCE]\n${knowledgeBaseText}
+[EXEMPLES D’E-MAILS]\n${emailExamplesText}
+`,
+      },
+      {
+        role: "user",
+        content: `Courriel du client :\n${input}`,
+      },
+    ],
+  }),
+});
+
       if (!res.ok) throw new Error(`Proxy indisponible (${res.status})`);
       const data = await res.json();
       const content = data?.choices?.[0]?.message?.content;
