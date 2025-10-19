@@ -284,6 +284,19 @@ export default function App() {
   const [testError, setTestError] = useState(false);
   const [hasGenerated, setHasGenerated] = useState(false);
 
+// --- Type de demande ---
+const REQUEST_TYPES = [
+  { id: "reservation", label: "Réservation / devis" },
+  { id: "annulation", label: "Annulation / report" },
+  { id: "remboursement", label: "Demande de remboursement" },
+  { id: "ajout", label: "Ajout / modification de joueurs" },
+  { id: "anniversaire", label: "Forfait anniversaire" },
+  { id: "commandite", label: "Commandite / partenariat" },
+  { id: "autre", label: "Autre demande" },
+];
+const [requestType, setRequestType] = useState("reservation");
+
+
   const [cgvText, setCgvText] = useState(ORG_PRESET.cgvText);
   const [libraryText, setLibraryText] = useState(ORG_PRESET.libraryText);
   const [knowledgeBaseText, setKnowledgeBaseText] = useState(
@@ -367,6 +380,8 @@ export default function App() {
       {
         role: "system",
         content: `
+Type de demande actuel : ${requestType}.
+
 🎭 Tu es **l’Assistant IA du Service Client** pour un groupe d’entreprises spécialisées dans le divertissement immersif :
 Échappe-Toi Montréal, À Double Tour Québec, Vortex Plateau, Vortex Quartier Latin, Find The Key et Musi’Quiz.
 
@@ -646,6 +661,27 @@ Dans ces cas, ton rôle est de **désamorcer la tension** avec tact et professio
               </select>
             </div>
 
+{/* Type de demande */}
+<div
+  className={`bg-white text-gray-800 p-4 rounded-2xl border shadow transition-smooth ${
+    isLoading ? "card-glow" : "shadow-lg"
+  }`}
+>
+  <h3 className="font-semibold">Type de demande</h3>
+  <select
+    className="w-full border rounded-xl px-3 py-2 mt-1"
+    value={requestType}
+    onChange={(e) => setRequestType(e.target.value)}
+  >
+    {REQUEST_TYPES.map((r) => (
+      <option key={r.id} value={r.id}>
+        {r.label}
+      </option>
+    ))}
+  </select>
+</div>
+
+
             <div
               className={`bg-white text-gray-800 p-4 rounded-2xl border shadow transition-smooth ${
                 isLoading ? "card-glow" : "shadow-lg"
@@ -686,26 +722,26 @@ Dans ces cas, ton rôle est de **désamorcer la tension** avec tact et professio
                 ))}
               </select>
 
-              <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
-                {[
-                  ["horairesOk", "Horaire OK"],
-                  ["dateOk", "Date OK"],
-                  ["minorsRule", "Règle mineurs"],
-                  ["teamBuilding", "Team building"],
-                  ["simultaneousStart", "Départ simultané"],
-                ].map(([k, label]) => (
-                  <label key={k} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={ctx[k as keyof typeof ctx]}
-                      onChange={(e) =>
-                        setCtx({ ...ctx, [k]: e.target.checked })
-                      }
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
+              {requestType === "reservation" && (
+  <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+    {[
+      ["horairesOk", "Horaire OK"],
+      ["dateOk", "Date OK"],
+      ["minorsRule", "Règle mineurs"],
+      ["teamBuilding", "Team building"],
+      ["simultaneousStart", "Départ simultané"],
+    ].map(([k, label]) => (
+      <label key={k} className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={ctx[k as keyof typeof ctx]}
+          onChange={(e) => setCtx({ ...ctx, [k]: e.target.checked })}
+        />
+        {label}
+      </label>
+    ))}
+  </div>
+)}
             </div>
 
             {/* CGV */}
