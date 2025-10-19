@@ -205,12 +205,13 @@ Adresse : 422 rue Ontario Est, Montréal
 Jeux : Quiz musical / blind test
 Durée : 60 minutes
 Prix : 30$ (plus taxes) / personne (1-6 joueurs), 27$ (plus taxes) / personne (7-12 joueurs) / 25$ (plus taxes) / personne (3-18 joueurs)
-
+Adaptation spéciale pour les groupes d'adolescents (10-16 ans) disponible avec l'aoption Musi'Ados
 === MUSI’QUIZ QUÉBEC ===
 Adresse : 430 rue du Parvis, Québec
 Jeux : Quiz musical / blind test
 Durée : 60 minutes
 Prix : 30$ (plus taxes) / personne (1-6 joueurs), 27$ (plus taxes) / personne (7-12 joueurs) / 25$ (plus taxes) / personne (3-18 joueurs)
+Adaptation spéciale pour les groupes d'adolescents (10-16 ans) disponible avec l'aoption Musi'Ados
 `,
   emailExamplesText: `Exemple 1 :
 Bonjour [Prénom],
