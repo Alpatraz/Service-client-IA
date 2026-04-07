@@ -550,10 +550,20 @@ Dans ces cas, ton rôle est de **désamorcer la tension** avec tact, professionn
   }),
 });
 
-      if (!res.ok) throw new Error(`Proxy indisponible (${res.status})`);
-      const data = await res.json();
-      const content = data?.choices?.[0]?.message?.content;
-      if (!content) throw new Error("Réponse vide");
+const data = await res.json();
+
+if (!res.ok) {
+  const apiMessage =
+    data?.error?.message ||
+    data?.message ||
+    `Erreur API (${res.status})`;
+  throw new Error(apiMessage);
+}
+
+const content = data?.choices?.[0]?.message?.content;
+if (!content) {
+  throw new Error("Réponse vide");
+}
       setOutput(content);
       setHasGenerated(true);
       setTestError(false);
