@@ -24,7 +24,7 @@ const ORG_PRESET = {
     simultaneousStart: false,
   },
   provider: "openrouter",
-  model: "anthropic/claude-3.5-sonnet:beta",
+  model: "anthropic/claude-3.5-sonnet",
   cgvText: `Cette entente s’applique à toute activité relative à Echappe-Toi. En utilisant cette page web, en effectuant une réservation ou en utilisant les locaux d’Échappe-Toi, vous attestez que vous avez examiné et que vous comprenez les conditions prévues par la présente, et que vous acceptez, sans restriction ni condition, d’être lié par celle-ci.
 
 CONDITION D'ENTRÉE:  Vous devez lire et accepter les Termes et Conditions de Echappe-Toi avant d’utiliser nos services, et cela, avant d’avoir payé les frais liés à la réservation.
