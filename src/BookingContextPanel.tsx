@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { DEMO_BOOKING_CONTEXT, prepareBookingCommand, type BookingCommand, type BookingCommandEnvelope, type BookingCustomer360 } from "./bookingBridge";
+import { DEMO_BOOKING_CONTEXT, DEMO_BOOKING_INCIDENT, incidentToServiceContext, prepareBookingCommand, type BookingCommand, type BookingCommandEnvelope, type BookingCustomer360 } from "./bookingBridge";
 
 const labels: Record<BookingCommand, string> = {
   checkAvailability: "Vérifier disponibilités",
@@ -19,6 +19,7 @@ export function BookingContextPanel({
   onContextChange?: (context: BookingCustomer360) => void;
 }) {
   const [lastCommand, setLastCommand] = useState<BookingCommandEnvelope | null>(null);
+  const [incidentLinked, setIncidentLinked] = useState(false);
   const primaryReservation = customer.upcomingReservations[0] || null;
   const commands = useMemo<BookingCommand[]>(() => [
     "checkAvailability",
@@ -97,6 +98,29 @@ export function BookingContextPanel({
               <p className="text-[10px] text-slate-400 mt-1">Mode supervisé · autorisation serveur requise · directDatabaseWrite = false</p>
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="border-t border-slate-700/70 p-4 bg-violet-950/10">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 rounded-xl border border-violet-400/25 bg-violet-950/20 p-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <b className="text-xs text-violet-300">Incident Booking entrant</b>
+              <span className="rounded-full bg-red-500/10 text-red-300 border border-red-400/20 px-2 py-0.5 text-[10px] font-bold">Priorité haute</span>
+            </div>
+            <p className="text-xs text-slate-200 mt-1">{DEMO_BOOKING_INCIDENT.summary}</p>
+            <p className="text-[10px] text-slate-400 mt-1">{DEMO_BOOKING_INCIDENT.reservationId} · {DEMO_BOOKING_INCIDENT.gameSessionId} · {DEMO_BOOKING_INCIDENT.correlationId}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              incidentToServiceContext(DEMO_BOOKING_INCIDENT, customer);
+              setIncidentLinked(true);
+            }}
+            className={`px-3 py-2 rounded-xl border text-xs font-bold ${incidentLinked ? "border-emerald-400/30 bg-emerald-950/30 text-emerald-300" : "border-violet-400/30 bg-violet-950/30 text-violet-200"}`}
+          >
+            {incidentLinked ? "Dossier contextualisé ✓" : "Ouvrir avec contexte"}
+          </button>
         </div>
       </div>
     </section>
