@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
+import { BookingContextPanel } from "./BookingContextPanel";
+import { DEMO_BOOKING_CONTEXT, bookingContextForAi } from "./bookingBridge";
 
 const ORG_PRESET = {
   brands: [
@@ -307,6 +309,7 @@ function LoadingDots() {
 export default function App() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
+  const [bookingContextEnabled, setBookingContextEnabled] = useState(true);
   const [brandId, setBrandId] = useState(ORG_PRESET.brandId);
   const [payment, setPayment] = useState(ORG_PRESET.payment);
   const [tone, setTone] = useState(ORG_PRESET.tone);
@@ -402,6 +405,8 @@ ${libraryText}
 BASE DE CONNAISSANCES
 ${knowledgeBaseText}
 
+${bookingContextEnabled ? bookingContextForAi(DEMO_BOOKING_CONTEXT) : "CONTEXTE GET BOOKING : désactivé pour ce brouillon."}
+
 EXEMPLES DE STYLE
 ${emailExamplesText}`,
         },
@@ -460,13 +465,31 @@ ${emailExamplesText}`,
         <div className="flex justify-between items-center gap-4">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-3">Assistant de réponse – Service Client {isLoading && <LoadingDots />}</h1>
-            <p className="text-xs text-gray-400 mt-1">Brouillons à valider avant envoi · version du 12 novembre 2026</p>
+            <p className="text-xs text-gray-400 mt-1">Brouillons à valider avant envoi · prototype GET Service × GET Booking · 20 novembre 2026</p>
           </div>
           <button onClick={runQuickTests} disabled={busy} className={`px-4 py-2 rounded-xl font-semibold transition-smooth disabled:opacity-50 ${testError ? "bg-red-600 text-white" : "bg-blue-600 text-white hover:bg-blue-700"}`}>
             {isTesting ? "Test en cours..." : "Tester la connexion"}
           </button>
         </div>
         {testLog && <p role="status" className={`text-sm ${testError ? "text-red-300" : "text-gray-200"}`}>{testLog}</p>}
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2">
+            <div>
+              <b className="text-xs">Contexte GET Booking dans la réponse IA</b>
+              <p className="text-[10px] text-slate-400">Prototype : utilise un dossier fictif, sans lire ni modifier de données réelles.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setBookingContextEnabled(value => !value)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${bookingContextEnabled ? "border-sky-400/40 bg-sky-950/40 text-sky-300" : "border-slate-600 text-slate-400"}`}
+            >
+              {bookingContextEnabled ? "Activé" : "Désactivé"}
+            </button>
+          </div>
+          {bookingContextEnabled && <BookingContextPanel />}
+        </div>
+
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 transition-smooth">
           <div className={`p-4 rounded-2xl border-2 flex flex-col transition-smooth shadow ${isLoading ? "card-glow" : "shadow-lg"} ${inputBorder}`}>
             <h2 className="font-semibold text-lg text-gray-800">Courriel reçu (colle ici)</h2>
