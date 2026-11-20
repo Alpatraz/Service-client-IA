@@ -125,3 +125,44 @@ export const DEMO_BOOKING_CONTEXT: BookingCustomer360 = {
   balance: 2576,
   lastGameResult: { outcome: "won", score: 920, satisfaction: 5, photoReady: true },
 };
+
+
+export type BookingServiceIncident = {
+  type: "technical_issue";
+  priority: "high" | "normal";
+  reservationId: string;
+  gameSessionId: string;
+  centreCode: string;
+  correlationId: string;
+  summary: string;
+  status: "new" | "linked" | "resolved";
+};
+
+export const DEMO_BOOKING_INCIDENT: BookingServiceIncident = {
+  type: "technical_issue",
+  priority: "high",
+  reservationId: "demo-r1",
+  gameSessionId: "demo-gs-demo-r1",
+  centreCode: "ETM",
+  correlationId: "game-demo-gs-demo-r1-evt-issue",
+  summary: "Capteur indisponible pendant la partie — revue Service Client recommandée",
+  status: "new",
+};
+
+export function incidentToServiceContext(incident: BookingServiceIncident, customer: BookingCustomer360) {
+  const reservation = customer.upcomingReservations.find(row => row.id === incident.reservationId);
+  return {
+    sourceApplication: "get_booking",
+    targetApplication: "get_service",
+    type: incident.type,
+    priority: incident.priority,
+    customerId: customer.customer.id,
+    reservationId: incident.reservationId,
+    gameSessionId: incident.gameSessionId,
+    centreCode: incident.centreCode,
+    correlationId: incident.correlationId,
+    summary: incident.summary,
+    reservation,
+    directDatabaseWrite: false,
+  };
+}
